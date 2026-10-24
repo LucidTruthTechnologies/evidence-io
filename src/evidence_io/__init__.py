@@ -6,5 +6,5 @@ filesystem, with original times and deleted flags), ewf_writer (E01 encoder),
 fat32 and exfat (write-once volume builders), volume (choose and build).
 """
 
-VERSION = "1.0.0"
+VERSION = "1.0.2"
 __version__ = VERSION
