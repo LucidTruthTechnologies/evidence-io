@@ -40,3 +40,7 @@ evidence-io @ git+https://github.com/LucidTruthTechnologies/evidence-io@v1.0.0
 ```
 
 Dependencies: `libewf-python` (LGPL-3.0-or-later) and `pytsk3` (Apache-2.0).
+
+## License
+
+MIT. See [LICENSE](LICENSE). Copyright (c) 2026 Lucid Truth Technologies®.
