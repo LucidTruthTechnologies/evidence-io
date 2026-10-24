@@ -300,7 +300,10 @@ class Fat32Builder:
         for d in dirs:
             for c in d.children:
                 if not c.is_dir:
-                    c.first_cluster = alloc(self._clusters_for(c.size))
+                    # An empty file owns no cluster: first cluster 0. chkdsk
+                    # rejects a zero-size entry that points at one (Windows CI,
+                    # 2026-10-24: "The size of the ... entry is not valid").
+                    c.first_cluster = alloc(self._clusters_for(c.size)) if c.size else 0
                     files.append(c)
         if next_cluster > data_clusters + 2:
             raise ValueError("cluster plan overflowed; plan_size slack too small")
@@ -329,9 +332,10 @@ class Fat32Builder:
                 fh.write(self._dir_table(d))
             done = 0
             for f in files:
-                fh.seek((data_start + (f.first_cluster - 2) * self.cluster_sectors) * SECTOR)
-                assert f.source is not None
-                _copy_exact(f.source, fh, f.size)
+                if f.size:
+                    fh.seek((data_start + (f.first_cluster - 2) * self.cluster_sectors) * SECTOR)
+                    assert f.source is not None
+                    _copy_exact(f.source, fh, f.size)
                 done += 1
                 if progress:
                     progress(done, len(files))

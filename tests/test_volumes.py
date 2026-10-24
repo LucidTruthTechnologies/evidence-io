@@ -211,6 +211,23 @@ def test_builders_refuse_a_source_that_changed_size(tmp_path, builder, change):
         b.build(str(tmp_path / "v.img"))
 
 
+def test_fat32_empty_file_entry_has_cluster_zero(tmp_path):
+    import struct
+
+    src = tmp_path / "empty"
+    src.write_bytes(b"")
+    b = Fat32Builder()
+    b.add_file("empty.txt", str(src))
+    b.build(str(tmp_path / "v.img"))
+    e = next(c for c in b.root.children if c.long_name == "empty.txt")
+    assert e.first_cluster == 0
+    table = b._dir_table(b.root)
+    short = table.find(e.short)
+    hi, lo, size = struct.unpack_from("<H", table, short + 20)[0], struct.unpack_from("<H", table, short + 26)[0], \
+        struct.unpack_from("<I", table, short + 28)[0]
+    assert (hi, lo, size) == (0, 0, 0)
+
+
 def test_exfat_times_clamp_to_the_representable_range():
     from evidence_io.exfat import _clamped_utc
 
