@@ -18,6 +18,7 @@ COPY_BLOCK = 4 * 1024 * 1024
 _TSK_EXFAT_SYSTEM = {"$ALLOC_BITMAP", "$UPCASE_TABLE"}
 Log = Callable[[str], None]
 Cancel = Callable[[], bool]
+Skip = Callable[[str, str], None]
 
 
 @dataclass
@@ -154,9 +155,16 @@ def _time(meta: object, attr: str) -> Optional[float]:
 
 
 def walk_files(fs: pytsk3.FS_Info, include_deleted: bool, log: Log,
-               cancel: Cancel = lambda: False) -> Iterator[ImageFile]:
+               cancel: Cancel = lambda: False,
+               on_skip: Optional[Skip] = None) -> Iterator[ImageFile]:
     """Every regular file in `fs`, depth first. A deleted directory is
-    descended only when its own metadata was not reallocated."""
+    descended only when its own metadata was not reallocated.
+
+    `on_skip(path, reason)`, when given, is called for every entry the walk
+    did not examine: a deleted directory whose metadata was reallocated (its
+    contents are not walked) and any name with no metadata at all. Deleted
+    entries passed over because `include_deleted` is False, and entries that
+    are not regular files or directories, are not reported."""
     fs_type = fs_type_name(fs)
     seen_dirs: Set[int] = set()
     stack: List[tuple[str, int]] = [("", fs.info.root_inum)]
@@ -179,9 +187,14 @@ def walk_files(fs: pytsk3.FS_Info, include_deleted: bool, log: Log,
                 continue
             meta = entry.info.meta
             allocated = not (entry.info.name.flags & pytsk3.TSK_FS_NAME_FLAG_UNALLOC)
-            if (not allocated and not include_deleted) or meta is None:
+            if not allocated and not include_deleted:
                 continue
             child = f"{path}/{name}" if path else name
+            if meta is None:
+                if on_skip is not None:
+                    state = "allocated" if allocated else "deleted"
+                    on_skip(child, f"{state} name with no metadata entry: not examined")
+                continue
             # A deleted name whose metadata entry has since been reused points
             # at another file's bytes (fls shows "(realloc)").
             realloc = False
@@ -193,6 +206,9 @@ def walk_files(fs: pytsk3.FS_Info, include_deleted: bool, log: Log,
             if meta.type == pytsk3.TSK_FS_META_TYPE_DIR:
                 if allocated or not realloc:
                     stack.append((child, meta.addr))
+                elif on_skip is not None:
+                    on_skip(child, "deleted directory whose metadata entry was reallocated "
+                                   "to another file: its contents were not walked")
                 continue
             if meta.type != pytsk3.TSK_FS_META_TYPE_REG:
                 continue

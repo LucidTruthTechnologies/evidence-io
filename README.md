@@ -9,7 +9,7 @@ Requires Python 3.11 or later. CI runs on Windows and Linux with Python 3.12.
 | Module | Purpose |
 | --- | --- |
 | `ewf_reader` | `open_e01(path)` opens any segment of an E01 set read-only through libewf and returns a The Sleuth Kit image plus `SourceInfo` (segments, media size, stored hashes, header values). No mount, no driver, no administrator rights. |
-| `image_walk` | `iter_filesystems(img, log)` yields every readable filesystem in the image; `walk_files(fs, include_deleted, log)` yields every regular file as an `ImageFile` with its path, size, inode, `allocated`, `realloc`, the four times (`mtime`, `atime`, `ctime`, `crtime`, epoch seconds or `None`) and `fs_type`. `ImageFile.open()` reads a file in memory without writing anything to disk; `ImageFile.copy_to(dest)` copies it out exclusively and returns its hashes. |
+| `image_walk` | `iter_filesystems(img, log)` yields every readable filesystem in the image; `walk_files(fs, include_deleted, log, on_skip=None)` yields every regular file as an `ImageFile` with its path, size, inode, `allocated`, `realloc`, the four times (`mtime`, `atime`, `ctime`, `crtime`, epoch seconds or `None`) and `fs_type`. `ImageFile.open()` reads a file in memory without writing anything to disk; `ImageFile.copy_to(dest)` copies it out exclusively and returns its hashes. |
 | `hashing` | `hash_stream(chunks)` and `hash_file(path)` return MD5, SHA-1, SHA-256 and the byte count in one pass. |
 | `filetypes` | `video_match(name, size, read_head)` finds videos by extension and by container signature, so renamed videos are found; `is_image(name)` matches images by extension. |
 | `fat32`, `exfat` | Write-once volume builders: collect files, then `build(path)` writes a partitioned raw image. |
@@ -19,6 +19,7 @@ Requires Python 3.11 or later. CI runs on Windows and Linux with Python 3.12.
 ## Rules the code keeps
 
 - A deleted file whose metadata entry has been reused (`realloc`) points at another file's bytes. It is reported and must never be read as the deleted file.
+- An entry the walk does not examine is reported when the caller passes `walk_files(..., on_skip=callback)`: `callback(path, reason)` is called for a deleted directory whose metadata was reallocated (its contents are not walked) and for a name with no metadata. Added in 1.0.3; without `on_skip` the walk behaves as before.
 - A short read from a damaged deleted file is reported as such (`Hashes.bytes` less than `size`), never padded.
 - A file written into a new volume carries an extraction date in that container. The original times travel in the caller's manifest, and only those are evidence.
 - FAT32 stores local time with no zone. exFAT entries are written in UTC with the offset field marked valid. The Sleuth Kit 4.15 ignores that field and shows the UTC clock time as if it were local.
@@ -36,10 +37,10 @@ The `libewf-python` wheel is built without zlib and refuses to write. `pyfatfs` 
 Pin the full commit hash of a release, never the tag. A tag can be moved to different code by anyone who gains control of this repository, and every consumer pinned to it would silently pull that code; a commit hash cannot change. Release tags only mark which commits are releases. Resolve a tag to its commit once, when you adopt the release, and pin that:
 
 ```text
-git ls-remote https://github.com/LucidTruthTechnologies/evidence-io "refs/tags/v1.0.2^{}"
+git ls-remote https://github.com/LucidTruthTechnologies/evidence-io "refs/tags/v1.0.3^{}"
 
 # then, with the 40-character hash it printed:
-evidence-io @ git+https://github.com/LucidTruthTechnologies/evidence-io@<that hash>  # v1.0.2
+evidence-io @ git+https://github.com/LucidTruthTechnologies/evidence-io@<that hash>  # v1.0.3
 ```
 
 `evidence_io.VERSION` reports the release, so a consumer's run record shows which one it ran.

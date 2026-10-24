@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "evidence-io"
-version = "1.0.2"
+version = "1.0.3"
 description = "Read E01 images in-process and write E01 images holding FAT32 or exFAT volumes, in pure Python where libraries fall short"
 readme = "README.md"
 license = { text = "MIT" }
