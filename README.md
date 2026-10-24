@@ -33,10 +33,11 @@ The `libewf-python` wheel is built without zlib and refuses to write. `pyfatfs` 
 
 ## Using it
 
-Pin a release tag:
+Pin the full commit hash of a release, never the tag. A tag can be moved to different code by anyone who gains control of this repository, and every consumer pinned to it would silently pull that code; a commit hash cannot change. Release tags mark which commits are releases. Resolve one with `git ls-remote https://github.com/LucidTruthTechnologies/evidence-io refs/tags/v1.0.1^{}`.
 
 ```text
-evidence-io @ git+https://github.com/LucidTruthTechnologies/evidence-io@v1.0.0
+# v1.0.1
+evidence-io @ git+https://github.com/LucidTruthTechnologies/evidence-io@69d424615ab1fde6c000ce3081a4f2376762eadd
 ```
 
 Dependencies: `libewf-python` (LGPL-3.0-or-later) and `pytsk3` (Apache-2.0).
