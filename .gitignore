@@ -1,0 +1,12 @@
+.venv/
+build/
+dist/
+build-deps/
+fixture/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+*.E0[0-9]
+*.E[A-Z][A-Z]
+*.dd
+*.img
